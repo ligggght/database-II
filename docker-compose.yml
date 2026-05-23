@@ -44,7 +44,7 @@ services:
       - pg_data:/var/lib/postgresql/data
       # Scripts SQL colocados em postgres/init/ são executados na primeira
       # subida do container (criação do schema, índices, etc.).
-      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro,Z
     healthcheck:
       # pg_isready retorna 0 quando o servidor aceita conexões.
       # Usado pelo serviço "benchmark" para esperar o banco estar pronto.
@@ -70,7 +70,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro,Z
     healthcheck:
       # mysqladmin ping confirma que o servidor responde.
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot --silent"]
