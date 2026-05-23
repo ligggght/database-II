@@ -1,0 +1,12 @@
+# Drivers Python para os SGBDs comparados.
+# Usamos versões "binary" para não precisar de toolchain de compilação C
+# dentro do container.
+
+# Driver oficial-de-fato para PostgreSQL.
+psycopg2-binary==2.9.10
+
+# Driver oficial da Oracle/MySQL.
+mysql-connector-python==9.1.0
+
+# Observação: SQLite é acessado pelo módulo 'sqlite3' da stdlib do Python,
+# então não precisa de pacote adicional aqui.

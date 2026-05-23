@@ -1,0 +1,151 @@
+# =============================================================================
+# docker-compose.yml — Orquestração dos SGBDs e do cliente de benchmark
+# -----------------------------------------------------------------------------
+# Este arquivo sobe os SGBDs (PostgreSQL e MySQL) em containers separados e um
+# container "benchmark" que contém os scripts Python responsáveis por executar
+# os cenários de teste contra cada SGBD.
+#
+# SQLite não tem container próprio: por ser embarcado, o arquivo .db fica em um
+# volume e os scripts do container "benchmark" acessam diretamente.
+#
+# Como usar:
+#   1) Sobe os SGBDs em background:
+#        docker compose up -d postgres mysql
+#   2) Sobe o container do benchmark (fica "dormindo", pronto para receber
+#      comandos):
+#        docker compose up -d benchmark
+#   3) Executa um cenário:
+#        docker compose exec benchmark python /app/postgres/script.py
+#   4) No final, derruba tudo:
+#        docker compose down            (mantém os volumes/dados)
+#        docker compose down -v         (apaga volumes — reseta os SGBDs)
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — usa a imagem oficial sem modificações.
+  # Mantemos a configuração padrão para comparar os SGBDs "out-of-the-box".
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:14.23-bookworm
+    container_name: bench_postgres
+    environment:
+      POSTGRES_USER: bench
+      POSTGRES_PASSWORD: bench
+      POSTGRES_DB: bench
+    ports:
+      # Porta exposta no host para facilitar inspeção com clientes externos
+      # (ex: psql, DBeaver). Pode ser removida se houver conflito com um
+      # PostgreSQL local.
+      - "5432:5432"
+    volumes:
+      # Dados do banco — em volume nomeado para sobreviver a reinícios.
+      - pg_data:/var/lib/postgresql/data
+      # Scripts SQL colocados em postgres/init/ são executados na primeira
+      # subida do container (criação do schema, índices, etc.).
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # pg_isready retorna 0 quando o servidor aceita conexões.
+      # Usado pelo serviço "benchmark" para esperar o banco estar pronto.
+      test: ["CMD-SHELL", "pg_isready -U bench -d bench"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    networks:
+      - bench_net
+
+  # ---------------------------------------------------------------------------
+  # MySQL — também imagem oficial, com engine InnoDB padrão.
+  # ---------------------------------------------------------------------------
+  mysql:
+    image: mysql:oraclelinux9
+    container_name: bench_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bench
+      MYSQL_USER: bench
+      MYSQL_PASSWORD: bench
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # mysqladmin ping confirma que o servidor responde.
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot --silent"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    networks:
+      - bench_net
+
+  # ---------------------------------------------------------------------------
+  # Benchmark — container cliente. Roda os scripts Python que aplicam os
+  # cenários A/B/C contra os SGBDs. Não é um SGBD; é só o "executor".
+  #
+  # A imagem é construída a partir de benchmark/Dockerfile (será criado no
+  # próximo passo). Por enquanto, esse serviço só sobe depois que os SGBDs
+  # estiverem saudáveis.
+  # ---------------------------------------------------------------------------
+  benchmark:
+    build:
+      context: ./benchmark
+      dockerfile: Dockerfile
+    container_name: bench_client
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    environment:
+      # Endereços dos SGBDs dentro da rede do compose. Os nomes "postgres" e
+      # "mysql" são resolvidos automaticamente pelo DNS interno do Docker.
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: bench
+      PG_PASSWORD: bench
+      PG_DB: bench
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: bench
+      MYSQL_PASSWORD: bench
+      MYSQL_DB: bench
+      # Caminho do arquivo SQLite dentro do container (montado em volume).
+      SQLITE_PATH: /app/sqlite_data/bench.db
+    volumes:
+      # Código dos scripts entra por bind mount: editar no host atualiza
+      # o container sem precisar rebuild.
+      - ./postgres:/app/postgres:ro
+      - ./mysql:/app/mysql:ro
+      - ./sqlite:/app/sqlite:ro
+      - ./benchmark:/app/benchmark:ro
+      # Dataset compartilhado, somente leitura.
+      - ./rym-top-5000:/app/rym-top-5000:ro
+      # Pasta de resultados (JSON gerados pelos scripts) é gravável.
+      - ./results:/app/results
+      # Volume dedicado para o arquivo .db do SQLite.
+      - sqlite_data:/app/sqlite_data
+    networks:
+      - bench_net
+    # Mantém o container ativo aguardando comandos via 'docker compose exec'.
+    # Alternativa: usar 'docker compose run --rm benchmark <comando>' para
+    # uma execução pontual (cria e descarta o container a cada chamada).
+    command: ["sleep", "infinity"]
+
+# =============================================================================
+# Volumes nomeados — persistem os dados dos SGBDs entre reinícios.
+# Para resetar os bancos zerados: docker compose down -v
+# =============================================================================
+volumes:
+  pg_data:
+  mysql_data:
+  sqlite_data:
+
+# =============================================================================
+# Rede interna — todos os serviços compartilham a mesma rede bridge para
+# poderem se comunicar pelos nomes de serviço (postgres, mysql).
+# =============================================================================
+networks:
+  bench_net:
+    driver: bridge

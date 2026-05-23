@@ -1,3 +1,0 @@
-FROM alpine/sqlite:3.51.2
-
-COPY script.py .

@@ -1,3 +1,0 @@
-FROM postgres:14.23-bookworm
-
-COPY script.py .

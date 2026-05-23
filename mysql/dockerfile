@@ -1,3 +1,0 @@
-FROM mysql:oraclelinux9
-
-COPY script.py .

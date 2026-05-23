@@ -1,0 +1,32 @@
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# --- Resultados dos benchmarks ---
+# Gerados a cada execução; não fazem sentido no repositório.
+results/*.json
+
+# --- SQLite (caso alguém rode fora do container) ---
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# --- Variáveis de ambiente ---
+.env
+.env.local
+
+# --- IDE / editores ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Sistema operacional ---
+.DS_Store
+Thumbs.db
+
+# --- Cache do kagglehub ---
+.cache/
