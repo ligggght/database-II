@@ -116,14 +116,14 @@ services:
     volumes:
       # Código dos scripts entra por bind mount: editar no host atualiza
       # o container sem precisar rebuild.
-      - ./postgres:/app/postgres:ro
-      - ./mysql:/app/mysql:ro
-      - ./sqlite:/app/sqlite:ro
-      - ./benchmark:/app/benchmark:ro
+      - ./postgres:/app/postgres:ro,Z
+      - ./mysql:/app/mysql:ro,Z
+      - ./sqlite:/app/sqlite:ro,Z
+      - ./benchmark:/app/benchmark:ro,Z
       # Dataset compartilhado, somente leitura.
-      - ./rym-top-5000:/app/rym-top-5000:ro
+      - ./rym-top-5000:/app/rym-top-5000:ro,Z
       # Pasta de resultados (JSON gerados pelos scripts) é gravável.
-      - ./results:/app/results
+      - ./results:/app/results:Z
       # Volume dedicado para o arquivo .db do SQLite.
       - sqlite_data:/app/sqlite_data
     networks:
