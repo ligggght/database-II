@@ -58,7 +58,7 @@ NUM_INSERTS     = 100_000
 NUM_SELECTS     = 100_000
 NUM_WORKERS     = 100
 OPS_POR_WORKER  = 1_000
-NUM_REPETICOES  = 31        # cada experimento é repetido N vezes
+NUM_REPETICOES  = 10        # cada experimento é repetido N vezes
 DESCARTAR_PRIMEIRA = True  # descarta a primeira execução (aquecimento)
 
 # -----------------------------------------------------------------------------
@@ -413,5 +413,5 @@ if __name__ == "__main__":
     }
 
     nome = f"sqlite_{args.cenario}_{now_timestamp()}.json"
-    save_results(nome, relatorio)
+    save_results(nome, relatorio, subdir="sqlite")
     print(json.dumps(relatorio, indent=2, ensure_ascii=False))

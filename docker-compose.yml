@@ -122,8 +122,10 @@ services:
       - ./benchmark:/app/benchmark:ro,Z
       # Dataset compartilhado, somente leitura.
       - ./rym-top-5000:/app/rym-top-5000:ro,Z
-      # Pasta de resultados (JSON gerados pelos scripts) é gravável.
-      - ./results:/app/results:Z
+      # Resultados de cada SGBD ficam na subpasta results/ de cada um.
+      - ./sqlite/results:/app/results/sqlite:Z
+      - ./postgres/results:/app/results/postgres:Z
+      - ./mysql/results:/app/results/mysql:Z
       # Volume dedicado para o arquivo .db do SQLite.
       - sqlite_data:/app/sqlite_data
     networks:

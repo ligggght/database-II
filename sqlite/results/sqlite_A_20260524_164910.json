@@ -1,0 +1,204 @@
+{
+  "sgbd": "sqlite",
+  "cenario": "A",
+  "descricao": "1 conexão, 100k INSERTs + 100k SELECTs",
+  "runs": {
+    "total": 10,
+    "descartadas": 1,
+    "consideradas": 9
+  },
+  "media": {
+    "inserts": {
+      "total": 100000,
+      "tempo_total_s": 0.3084,
+      "tps": 352554.0833,
+      "latencia": {
+        "media_ms": 0.0026,
+        "p50_ms": 0.0017,
+        "p95_ms": 0.0036,
+        "p99_ms": 0.0058,
+        "min_ms": 0.0015,
+        "max_ms": 40.0148
+      }
+    },
+    "selects": {
+      "total": 100000,
+      "tempo_total_s": 1.097,
+      "tps": 100022.3933,
+      "latencia": {
+        "media_ms": 0.0102,
+        "p50_ms": 0.0093,
+        "p95_ms": 0.0147,
+        "p99_ms": 0.0198,
+        "min_ms": 0.0066,
+        "max_ms": 1.3795
+      }
+    }
+  },
+  "desvio_padrao": {
+    "inserts": {
+      "total": 0.0,
+      "tempo_total_s": 0.1302,
+      "tps": 75669.205,
+      "latencia": {
+        "media_ms": 0.0013,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0006,
+        "p99_ms": 0.0019,
+        "min_ms": 0.0,
+        "max_ms": 114.9122
+      }
+    },
+    "selects": {
+      "total": 0.0,
+      "tempo_total_s": 0.4198,
+      "tps": 26356.3437,
+      "latencia": {
+        "media_ms": 0.0039,
+        "p50_ms": 0.0033,
+        "p95_ms": 0.0086,
+        "p99_ms": 0.0091,
+        "min_ms": 0.0,
+        "max_ms": 2.3135
+      }
+    }
+  },
+  "percentual_desvio": {
+    "inserts": {
+      "total": 0.0,
+      "tempo_total_s": 42.2179,
+      "tps": 21.4631,
+      "latencia": {
+        "media_ms": 50.0,
+        "p50_ms": 0.0,
+        "p95_ms": 16.6667,
+        "p99_ms": 32.7586,
+        "min_ms": 0.0,
+        "max_ms": 287.1742
+      }
+    },
+    "selects": {
+      "total": 0.0,
+      "tempo_total_s": 38.268,
+      "tps": 26.3504,
+      "latencia": {
+        "media_ms": 38.2353,
+        "p50_ms": 35.4839,
+        "p95_ms": 58.5034,
+        "p99_ms": 45.9596,
+        "min_ms": 0.0,
+        "max_ms": 167.7057
+      }
+    }
+  },
+  "erro_padrao": {
+    "inserts": {
+      "total": 0.0,
+      "tempo_total_s": 0.0434,
+      "tps": 25223.0683,
+      "latencia": {
+        "media_ms": 0.0004,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0002,
+        "p99_ms": 0.0006,
+        "min_ms": 0.0,
+        "max_ms": 38.3041
+      }
+    },
+    "selects": {
+      "total": 0.0,
+      "tempo_total_s": 0.1399,
+      "tps": 8785.4479,
+      "latencia": {
+        "media_ms": 0.0013,
+        "p50_ms": 0.0011,
+        "p95_ms": 0.0029,
+        "p99_ms": 0.003,
+        "min_ms": 0.0,
+        "max_ms": 0.7712
+      }
+    }
+  },
+  "ic95": {
+    "inserts": {
+      "total": {
+        "inferior": 100000.0,
+        "superior": 100000.0
+      },
+      "tempo_total_s": {
+        "inferior": 0.2233,
+        "superior": 0.3935
+      },
+      "tps": {
+        "inferior": 303116.8694,
+        "superior": 401991.2972
+      },
+      "latencia": {
+        "media_ms": {
+          "inferior": 0.0018,
+          "superior": 0.0034
+        },
+        "p50_ms": {
+          "inferior": 0.0017,
+          "superior": 0.0017
+        },
+        "p95_ms": {
+          "inferior": 0.0032,
+          "superior": 0.004
+        },
+        "p99_ms": {
+          "inferior": 0.0046,
+          "superior": 0.007
+        },
+        "min_ms": {
+          "inferior": 0.0015,
+          "superior": 0.0015
+        },
+        "max_ms": {
+          "inferior": -35.0612,
+          "superior": 115.0908
+        }
+      }
+    },
+    "selects": {
+      "total": {
+        "inferior": 100000.0,
+        "superior": 100000.0
+      },
+      "tempo_total_s": {
+        "inferior": 0.8228,
+        "superior": 1.3712
+      },
+      "tps": {
+        "inferior": 82802.9154,
+        "superior": 117241.8712
+      },
+      "latencia": {
+        "media_ms": {
+          "inferior": 0.0077,
+          "superior": 0.0127
+        },
+        "p50_ms": {
+          "inferior": 0.0071,
+          "superior": 0.0115
+        },
+        "p95_ms": {
+          "inferior": 0.009,
+          "superior": 0.0204
+        },
+        "p99_ms": {
+          "inferior": 0.0139,
+          "superior": 0.0257
+        },
+        "min_ms": {
+          "inferior": 0.0066,
+          "superior": 0.0066
+        },
+        "max_ms": {
+          "inferior": -0.1321,
+          "superior": 2.8911
+        }
+      }
+    }
+  }
+}

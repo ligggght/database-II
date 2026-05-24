@@ -57,7 +57,7 @@ NUM_INSERTS     = 100_000   # cenário A: inserts iniciais + popular tabela p/ B
 NUM_SELECTS     = 100_000   # cenário A
 NUM_WORKERS     = 100       # cenários B e C
 OPS_POR_WORKER  = 1_000     # cenários B e C (total = 100k operações)
-NUM_REPETICOES  = 61        # cada experimento é repetido N vezes
+NUM_REPETICOES  = 10        # cada experimento é repetido N vezes
 DESCARTAR_PRIMEIRA = True  # descarta a primeira execução (aquecimento)
 
 # -----------------------------------------------------------------------------
@@ -401,5 +401,5 @@ if __name__ == "__main__":
     }
 
     nome = f"postgres_{args.cenario}_{now_timestamp()}.json"
-    save_results(nome, relatorio)
+    save_results(nome, relatorio, subdir="postgres")
     print(json.dumps(relatorio, indent=2, ensure_ascii=False))

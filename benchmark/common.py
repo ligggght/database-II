@@ -114,13 +114,16 @@ def percentiles(latencias_seg):
     }
 
 
-def save_results(nome_arquivo, dados):
+def save_results(nome_arquivo, dados, subdir=None):
     """
-    Grava o dict 'dados' como JSON em /app/results/<nome_arquivo>.
-    Cria a pasta se não existir e retorna o caminho do arquivo gerado.
+    Grava o dict 'dados' como JSON em /app/results/<subdir>/<nome_arquivo>.
+    Se subdir for informado (ex: "sqlite", "postgres", "mysql"), o arquivo
+    é salvo dentro dessa subpasta. Cria a pasta se não existir e retorna
+    o caminho do arquivo gerado.
     """
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    caminho = RESULTS_DIR / nome_arquivo
+    pasta = RESULTS_DIR / subdir if subdir else RESULTS_DIR
+    pasta.mkdir(parents=True, exist_ok=True)
+    caminho = pasta / nome_arquivo
     with open(caminho, 'w', encoding='utf-8') as f:
         json.dump(dados, f, indent=2, ensure_ascii=False)
     print(f"[OK] Resultados salvos em {caminho}")

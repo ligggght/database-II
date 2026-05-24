@@ -60,7 +60,7 @@ NUM_INSERTS     = 100_000
 NUM_SELECTS     = 100_000
 NUM_WORKERS     = 100
 OPS_POR_WORKER  = 1_000
-NUM_REPETICOES  = 31        # cada experimento é repetido N vezes
+NUM_REPETICOES  = 10        # cada experimento é repetido N vezes
 DESCARTAR_PRIMEIRA = True  # descarta a primeira execução (aquecimento)
 
 # -----------------------------------------------------------------------------
@@ -104,7 +104,9 @@ def garantir_tabela_populada(resetar=False):
         print(f"[setup] Tabela tem {count} linhas; recarregando para {NUM_INSERTS}...")
         cur.execute(SQL_TRUNCATE)
         registros = load_dataset(NUM_INSERTS)
-        cur.executemany(SQL_INSERT, registros)
+        tamanho_lote = 1_000
+        for i in range(0, len(registros), tamanho_lote):
+            cur.executemany(SQL_INSERT, registros[i:i + tamanho_lote])
         conn.commit()
         print("[setup] Tabela populada.")
     else:
@@ -373,5 +375,5 @@ if __name__ == "__main__":
     }
 
     nome = f"mysql_{args.cenario}_{now_timestamp()}.json"
-    save_results(nome, relatorio)
+    save_results(nome, relatorio, subdir="mysql")
     print(json.dumps(relatorio, indent=2, ensure_ascii=False))
