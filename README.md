@@ -45,6 +45,13 @@ docker compose exec benchmark python /app/mysql/script.py    --cenario B
 docker compose exec benchmark python /app/sqlite/script.py   --cenario C
 ```
 
+Para garantir uma base sempre igual entre execucoes (mesmo com volumes persistentes),
+use a flag `--resetar`:
+
+```bash
+docker compose exec benchmark python /app/postgres/script.py --cenario B --resetar
+```
+
 Cenários:
 
 | | Descrição |
@@ -55,8 +62,9 @@ Cenários:
 
 ### 3. Ver os resultados
 
-Cada execução gera um JSON em `results/<sgbd>_<cenario>_<timestamp>.json`
-com tempo total, vazão (TPS), e latências (média + p50/p95/p99).
+Cada execução gera um JSON em `results/<sgbd>_<cenario>_<timestamp>.json`.
+O experimento roda 31 vezes, descarta a primeira (aquecimento) e reporta
+média e desvio padrão das métricas (tempo, TPS e latências).
 
 ### 4. Encerrar
 

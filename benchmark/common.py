@@ -14,6 +14,8 @@ conexão e dos cenários.
 
 import csv
 import json
+import math
+import statistics
 from datetime import datetime
 from pathlib import Path
 
@@ -128,3 +130,84 @@ def save_results(nome_arquivo, dados):
 def now_timestamp():
     """Timestamp legível para nomear arquivos, ex: 20260523_143055."""
     return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def executar_repeticoes(func, repeticoes):
+    """Executa a funcao de benchmark N vezes e devolve a lista de resultados."""
+    resultados = []
+    for i in range(repeticoes):
+        print(f"[run] {i + 1}/{repeticoes}")
+        resultados.append(func())
+    return resultados
+
+
+def selecionar_amostra(resultados, descartar_primeira=True):
+    """Descarta a primeira execucao (aquecimento) quando solicitado."""
+    if descartar_primeira and len(resultados) > 1:
+        return resultados[1:]
+    return resultados
+
+
+def extrair_numericos(resultado):
+    """Remove chaves de metadados e deixa apenas campos numericos/estruturais."""
+    meta = {"sgbd", "cenario", "descricao"}
+    return {k: v for k, v in resultado.items() if k not in meta}
+
+
+def agregar_estatisticas(resultados):
+    """Calcula media, desvio padrao, percentual, erro padrao e ic95 (recursivo)."""
+    if not resultados:
+        return {}, {}, {}, {}, {}
+
+    n = len(resultados)
+
+    def _eh_numero(valor):
+        return isinstance(valor, (int, float)) and not isinstance(valor, bool)
+
+    def _agregar(valores, modo):
+        primeiro = valores[0]
+        if isinstance(primeiro, dict):
+            return {k: _agregar([v[k] for v in valores], modo) for k in primeiro.keys()}
+        if all(_eh_numero(v) for v in valores):
+            if modo == "media":
+                valor = statistics.mean(valores)
+            else:
+                valor = statistics.stdev(valores) if len(valores) > 1 else 0.0
+            return round(valor, 4)
+        return primeiro
+
+    def _percentual(media_val, desvio_val):
+        if isinstance(media_val, dict):
+            return {k: _percentual(media_val[k], desvio_val[k]) for k in media_val.keys()}
+        if _eh_numero(media_val) and _eh_numero(desvio_val):
+            if media_val == 0:
+                return 0.0
+            return round((desvio_val / media_val) * 100, 4)
+        return media_val
+
+    def _erro_padrao(media_val, desvio_val):
+        if isinstance(media_val, dict):
+            return {k: _erro_padrao(media_val[k], desvio_val[k]) for k in media_val.keys()}
+        if _eh_numero(media_val) and _eh_numero(desvio_val):
+            if n <= 1:
+                return 0.0
+            return round(desvio_val / math.sqrt(n), 4)
+        return media_val
+
+    def _ic95(media_val, erro_padrao_val):
+        if isinstance(media_val, dict):
+            return {k: _ic95(media_val[k], erro_padrao_val[k]) for k in media_val.keys()}
+        if _eh_numero(media_val) and _eh_numero(erro_padrao_val):
+            delta = 1.96 * erro_padrao_val
+            return {
+                "inferior": round(media_val - delta, 4),
+                "superior": round(media_val + delta, 4),
+            }
+        return media_val
+
+    media = _agregar(resultados, "media")
+    desvio = _agregar(resultados, "desvio_padrao")
+    percentual = _percentual(media, desvio)
+    erro_padrao = _erro_padrao(media, desvio)
+    ic95 = _ic95(media, erro_padrao)
+    return media, desvio, percentual, erro_padrao, ic95

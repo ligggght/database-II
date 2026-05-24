@@ -27,7 +27,16 @@ import psycopg2
 
 # Importa utilitários compartilhados (load_dataset, percentiles, save_results, ...)
 sys.path.insert(0, "/app/benchmark")
-from common import load_dataset, percentiles, save_results, now_timestamp
+from common import (
+    load_dataset,
+    percentiles,
+    save_results,
+    now_timestamp,
+    executar_repeticoes,
+    selecionar_amostra,
+    extrair_numericos,
+    agregar_estatisticas,
+)
 
 
 # -----------------------------------------------------------------------------
@@ -48,6 +57,8 @@ NUM_INSERTS     = 100_000   # cenário A: inserts iniciais + popular tabela p/ B
 NUM_SELECTS     = 100_000   # cenário A
 NUM_WORKERS     = 100       # cenários B e C
 OPS_POR_WORKER  = 1_000     # cenários B e C (total = 100k operações)
+NUM_REPETICOES  = 61        # cada experimento é repetido N vezes
+DESCARTAR_PRIMEIRA = True  # descarta a primeira execução (aquecimento)
 
 # -----------------------------------------------------------------------------
 # SQL — parâmetros usam %s no psycopg2 (estilo "format")
@@ -76,10 +87,10 @@ def conectar():
     return psycopg2.connect(**DB_CONFIG)
 
 
-def garantir_tabela_populada():
+def garantir_tabela_populada(resetar=False):
     """
-    Verifica se a tabela 'albums' tem pelo menos NUM_INSERTS registros.
-    Se não tiver, limpa e popula com os dados do CSV.
+    Garante que a tabela 'albums' tenha exatamente NUM_INSERTS registros.
+    Se resetar=True ou o tamanho for diferente, limpa e recarrega do CSV.
     Usado nos cenários B e C, que precisam de dados pré-carregados para ler/atualizar.
     """
     conn = conectar()
@@ -87,14 +98,14 @@ def garantir_tabela_populada():
     cur.execute(SQL_COUNT)
     count = cur.fetchone()[0]
 
-    if count < NUM_INSERTS:
-        print(f"[setup] Tabela tem {count} linhas; populando com {NUM_INSERTS}...")
+    if resetar or count != NUM_INSERTS:
+        print(f"[setup] Tabela tem {count} linhas; recarregando para {NUM_INSERTS}...")
         cur.execute(SQL_TRUNCATE)
         registros = load_dataset(NUM_INSERTS)
         # executemany é mais eficiente que vários execute em loop para essa carga inicial
         cur.executemany(SQL_INSERT, registros)
         conn.commit()
-        print(f"[setup] Tabela populada.")
+        print("[setup] Tabela populada.")
     else:
         print(f"[setup] Tabela já tem {count} linhas; pulando carga inicial.")
 
@@ -121,6 +132,11 @@ def registro_sintetico(id_):
         1000,                      # rating_count
         50,                        # review_count
     )
+
+
+def inicializar_aleatoriedade(worker_id):
+    """Define uma semente distinta por processo para evitar padrões idênticos."""
+    random.seed(time.time_ns() ^ (worker_id << 16))
 
 
 # -----------------------------------------------------------------------------
@@ -196,6 +212,7 @@ def worker_selects(args):
     Abre 1 conexão, faz OPS_POR_WORKER SELECTs aleatórios, devolve as latências.
     """
     worker_id, ids_disponiveis, num_ops = args
+    inicializar_aleatoriedade(worker_id)
     conn = conectar()
     cur = conn.cursor()
     latencias = []
@@ -210,12 +227,12 @@ def worker_selects(args):
     return latencias
 
 
-def cenario_b():
+def cenario_b(resetar=False):
     """
     100 processos lendo simultaneamente. Mede como o SGBD despacha leituras
     para múltiplos clientes concorrentes.
     """
-    garantir_tabela_populada()
+    garantir_tabela_populada(resetar=resetar)
     ids_disponiveis = list(range(1, NUM_INSERTS + 1))
 
     # Cada worker recebe (id, lista_de_ids, num_ops) — multiprocessing serializa
@@ -255,6 +272,7 @@ def worker_writes(args):
     já existentes.
     """
     worker_id, num_ops, id_base_insert, id_max_update = args
+    inicializar_aleatoriedade(worker_id)
     conn = conectar()
     cur = conn.cursor()
 
@@ -295,12 +313,12 @@ def worker_writes(args):
     return latencias_insert, latencias_update, falhas
 
 
-def cenario_c():
+def cenario_c(resetar=False):
     """
     100 processos escrevendo simultaneamente. Mede gerenciamento de locks
     e fila de escritas concorrentes.
     """
-    garantir_tabela_populada()
+    garantir_tabela_populada(resetar=resetar)
 
     # Cada worker reserva um bloco de ids para INSERT, começando logo após
     # o último id existente (NUM_INSERTS).
@@ -321,6 +339,7 @@ def cenario_c():
     todas_lat_update = [lat for r in resultados for lat in r[1]]
     total_falhas     = sum(r[2] for r in resultados)
     total_ops        = len(todas_lat_insert) + len(todas_lat_update)
+    total_planejadas = NUM_WORKERS * OPS_POR_WORKER
 
     return {
         "sgbd":    "postgres",
@@ -329,7 +348,9 @@ def cenario_c():
         "num_workers":     NUM_WORKERS,
         "ops_por_worker":  OPS_POR_WORKER,
         "total_ops":       total_ops,
+        "total_ops_planejadas": total_planejadas,
         "total_falhas":    total_falhas,
+        "taxa_falhas":     round((total_falhas / total_planejadas), 4) if total_planejadas else 0,
         "tempo_total_s":   round(duracao, 4),
         "tps":             round(total_ops / duracao, 2) if duracao > 0 else 0,
         "latencia_inserts": percentiles(todas_lat_insert),
@@ -343,15 +364,42 @@ def cenario_c():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Benchmark do PostgreSQL")
     parser.add_argument("--cenario", required=True, choices=["A", "B", "C"])
+    parser.add_argument(
+        "--resetar",
+        action="store_true",
+        help="Recarrega a tabela para exatamente 100k linhas antes de rodar o cenario",
+    )
     args = parser.parse_args()
 
     if args.cenario == "A":
-        resultado = cenario_a()
+        func_cenario = cenario_a
     elif args.cenario == "B":
-        resultado = cenario_b()
+        func_cenario = lambda: cenario_b(resetar=args.resetar)
     else:
-        resultado = cenario_c()
+        func_cenario = lambda: cenario_c(resetar=args.resetar)
+
+    resultados = executar_repeticoes(func_cenario, NUM_REPETICOES)
+    usados = selecionar_amostra(resultados, descartar_primeira=DESCARTAR_PRIMEIRA)
+    numericos = [extrair_numericos(r) for r in usados]
+    media, desvio, percentual, erro_padrao, ic95 = agregar_estatisticas(numericos)
+
+    base = resultados[0]
+    relatorio = {
+        "sgbd": base["sgbd"],
+        "cenario": base["cenario"],
+        "descricao": base["descricao"],
+        "runs": {
+            "total": NUM_REPETICOES,
+            "descartadas": 1 if DESCARTAR_PRIMEIRA and len(resultados) > 1 else 0,
+            "consideradas": len(usados),
+        },
+        "media": media,
+        "desvio_padrao": desvio,
+        "percentual_desvio": percentual,
+        "erro_padrao": erro_padrao,
+        "ic95": ic95,
+    }
 
     nome = f"postgres_{args.cenario}_{now_timestamp()}.json"
-    save_results(nome, resultado)
-    print(json.dumps(resultado, indent=2, ensure_ascii=False))
+    save_results(nome, relatorio)
+    print(json.dumps(relatorio, indent=2, ensure_ascii=False))
