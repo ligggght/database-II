@@ -10,7 +10,7 @@ concorrência de escritas.
 postgres/, mysql/, sqlite/   scripts dos cenários (+ schema SQL nos dois primeiros)
 benchmark/                   imagem do cliente Python e utilitários compartilhados
 rym-top-5000/                dataset
-results/                     JSONs gerados a cada execução
+<sgbd-name>/results/                     JSONs gerados a cada execução
 ```
 
 ## Pré-requisitos
