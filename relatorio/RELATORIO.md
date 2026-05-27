@@ -16,7 +16,82 @@ Três bancos de dados relacionais com **arquiteturas internas completamente dife
 
 ---
 
-## 2. Como testamos
+## 2. Os SGBDs em Detalhe
+
+> Para cada banco, além do paradigma, explicamos os mecanismos internos que aparecem nas análises dos resultados.
+
+---
+
+### SQLite — Acesso Direto (Embarcado)
+
+Não existe processo de servidor. O banco é uma **biblioteca** que roda dentro da própria aplicação e lê/escreve diretamente em um arquivo `.db` no disco. Zero overhead de rede ou protocolo.
+
+**Conceito-chave: Lock Exclusivo de Escrita**
+
+Por padrão, o SQLite usa um mecanismo simples para controlar quem pode escrever: **apenas um escritor por vez**. Quando uma conexão começa a escrever, ela trava o arquivo inteiro — todas as outras que queiram escrever precisam esperar.
+
+```
+Conexão 1 escrevendo → arquivo travado
+Conexão 2 quer escrever → espera...
+Conexão 3 quer escrever → espera...
+```
+
+Leituras simultâneas são permitidas sem problema. O colapso aparece quando muitos tentam **escrever ao mesmo tempo** — que é exatamente o Cenário C.
+
+---
+
+### MySQL (InnoDB) — Modelo de Threads
+
+Um processo central recebe todas as conexões. Cada cliente vira uma **thread** dentro desse processo, compartilhando memória — mais leve por conexão que o modelo de processos.
+
+**InnoDB — o motor interno do MySQL**
+
+O MySQL suporta diferentes "engines" (motores de armazenamento). O **InnoDB** é o padrão e o responsável por tudo que torna o MySQL capaz de lidar com acessos simultâneos: transações, travamentos precisos por linha (não por tabela inteira) e MVCC.
+
+**MVCC — múltiplas versões dos dados**
+
+Sem MVCC, uma escrita trava o dado para todos os leitores. Com MVCC, ao invés de travar, o banco **cria uma nova versão** do dado modificado e mantém a versão antiga para quem já estava lendo.
+
+```
+Sem MVCC:   leitor espera o escritor terminar
+Com MVCC:   leitor vê a versão antiga │ escritor cria versão nova  ← simultâneos
+```
+
+**Regra:** leitores não bloqueiam escritores. Escritores não bloqueiam leitores.
+
+O MySQL guarda as versões antigas em um espaço separado chamado **undo log**.
+
+**fsync — gravação segura no disco**
+
+O sistema operacional é "preguiçoso": ele acumula gravações na RAM e só escreve no disco quando achar conveniente. O **fsync** é uma chamada que força a gravação imediata no disco físico — garantindo que o dado sobrevive a uma queda de energia.
+
+O MySQL por padrão chama fsync **a cada commit individual**. Com 100 conexões fazendo commits separados ao mesmo tempo, isso se torna 100 operações de disco simultâneas — o disco vira o gargalo. Esse é o principal motivo pelo qual o MySQL teve p99 de **224 ms** no Cenário C, contra **6 ms** do PostgreSQL.
+
+---
+
+### PostgreSQL — Modelo de Processos
+
+Para cada conexão, cria um **processo separado** no sistema operacional. Maior custo de memória por conexão, mas isolamento total — a falha de um cliente não afeta os demais.
+
+**MVCC — mesma ideia, implementação diferente**
+
+Assim como o MySQL, o PostgreSQL usa MVCC para permitir leituras e escritas simultâneas. A diferença está em onde as versões antigas ficam guardadas: no PostgreSQL, elas ficam **direto na tabela principal**, marcadas como "mortas". Não há undo log separado — as versões antigas convivem com as novas no mesmo espaço em disco.
+
+**WAL + Group Commit — o segredo do desempenho em escritas concorrentes**
+
+O **WAL (Write-Ahead Log)** funciona como um rascunho antes da alteração definitiva: antes de modificar qualquer dado no banco, o PostgreSQL registra a intenção num arquivo de log. Se o servidor cair, ao reiniciar ele lê o log e sabe o que fazer — termina ou desfaz a operação com segurança.
+
+O que torna o PostgreSQL mais rápido que o MySQL no Cenário C é o **group commit**: quando várias transações terminam ao mesmo tempo esperando para confirmar no disco, o PostgreSQL as **agrupa e faz uma única gravação** para todas. O MySQL faz uma gravação separada por transação — muito mais operações de disco no mesmo período.
+
+```
+MySQL:      commit 1 → fsync | commit 2 → fsync | commit 3 → fsync ...
+PostgreSQL: commit 1 + commit 2 + commit 3 → um único fsync
+```
+
+
+---
+
+## 3. Como testamos
 
 ### Estrutura do benchmark
 
@@ -40,7 +115,7 @@ Três bancos de dados relacionais com **arquiteturas internas completamente dife
 
 ---
 
-## 3. Hipóteses esperadas
+## 4. Hipóteses esperadas
 
 | Cenário | O que esperávamos |
 |---|---|
@@ -50,7 +125,7 @@ Três bancos de dados relacionais com **arquiteturas internas completamente dife
 
 ---
 
-## 4. Resultados
+## 5. Resultados
 
 ![Visão geral de TPS em todos os cenários](../resultados/graficos/00_resumo_tps.png)
 
@@ -129,7 +204,7 @@ Dois pontos divergiram:
 
 ---
 
-## 5. Análises adicionais
+## 6. Análises adicionais
 
 ### Heatmap de pior caso (p99) por banco e cenário
 
@@ -144,7 +219,7 @@ O padrão visual confirma tudo que vimos:
 
 ---
 
-## 6. Conclusão
+## 7. Conclusão
 
 Os três paradigmas se comportaram exatamente como a teoria de banco de dados prevê — cada um com seu nicho claro:
 
@@ -155,3 +230,34 @@ Os três paradigmas se comportaram exatamente como a teoria de banco de dados pr
 | **PostgreSQL (processos)** | Escritas concorrentes pesadas: MVCC e controle de transações robusto levam a 6x mais TPS que o MySQL no cenário C | Uso de memória por conexão mais alto (um processo por cliente) |
 
 **A mensagem central:** a escolha do SGBD não é sobre "qual é o mais rápido" em termos absolutos — é sobre qual paradigma se encaixa no padrão de acesso da aplicação. SQLite para uso local/embarcado, PostgreSQL para workloads de escrita concorrente, MySQL como opção intermediária para leituras em escala.
+
+---
+
+## 8. Referências
+
+### SQLite
+
+[1] D. Richard Hipp et al. **SQLite — File Locking And Concurrency In SQLite Version 3**. SQLite Consortium, 2010–2024. Disponível em: <https://www.sqlite.org/lockingv3.html>
+
+[2] D. Richard Hipp et al. **SQLite — About SQLite**. SQLite Consortium. Disponível em: <https://www.sqlite.org/about.html>
+
+### MySQL / InnoDB
+
+[3] Oracle Corporation. **MySQL 8.0 Reference Manual — Introduction to InnoDB**. Oracle, 2024. Disponível em: <https://dev.mysql.com/doc/refman/8.0/en/innodb-introduction.html>
+
+[4] Oracle Corporation. **MySQL 8.0 Reference Manual — InnoDB Multi-Versioning**. Oracle, 2024. Disponível em: <https://dev.mysql.com/doc/refman/8.0/en/innodb-multi-versioning.html>
+
+[5] Oracle Corporation. **MySQL 8.0 Reference Manual — InnoDB Undo Logs**. Oracle, 2024. Disponível em: <https://dev.mysql.com/doc/refman/8.0/en/innodb-undo-logs.html>
+
+[6] Oracle Corporation. **MySQL 8.0 Reference Manual — `innodb_flush_log_at_trx_commit`**. Oracle, 2024. Disponível em: <https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_flush_log_at_trx_commit>
+
+### PostgreSQL
+
+[7] The PostgreSQL Global Development Group. **PostgreSQL Documentation — How Connections Are Established**. PostgreSQL, 2024. Disponível em: <https://www.postgresql.org/docs/current/connect-estab.html>
+
+[8] The PostgreSQL Global Development Group. **PostgreSQL Documentation — Introduction to MVCC**. PostgreSQL, 2024. Disponível em: <https://www.postgresql.org/docs/current/mvcc-intro.html>
+
+[9] The PostgreSQL Global Development Group. **PostgreSQL Documentation — Reliability and the Write-Ahead Log**. PostgreSQL, 2024. Disponível em: <https://www.postgresql.org/docs/current/wal.html>
+
+[10] The PostgreSQL Global Development Group. **PostgreSQL Documentation — WAL Configuration (Asynchronous Commit / Group Commit)**. PostgreSQL, 2024. Disponível em: <https://www.postgresql.org/docs/current/wal-async-commit.html>
+
