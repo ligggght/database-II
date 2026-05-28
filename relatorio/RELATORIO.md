@@ -176,7 +176,7 @@ Dois pontos divergiram:
 
 1. **SQLite não criou gargalo — dominou.** O SQLite permite múltiplos leitores simultâneos sem trava. Com 100 processos lendo o mesmo arquivo (que cabe inteiro na RAM), o sistema operacional serviu todos da memória sem overhead de rede. O paradigma embarcado foi ainda mais vantajoso aqui do que esperávamos.
 
-2. **PostgreSQL bateu MySQL, não o contrário.** A hipótese era que threads (MySQL) seriam mais leves que processos (PostgreSQL) para muitas conexões. Isso é verdade para *memória*, mas o gargalo real aqui foi o overhead de protocolo de rede — que existe igualmente nos dois. A 100 conexões, a diferença de threads vs. processos não foi suficiente para o MySQL superar o PostgreSQL.
+2. **PostgreSQL bateu MySQL, não o contrário.** A hipótese era que threads (MySQL) seriam mais leves que processos (PostgreSQL) para muitas conexões. Os dados refutaram essa previsão — mas não temos uma causa confirmada. O que podemos afirmar é que a vantagem de threads em custo de conexão **não foi o gargalo dominante** a 100 conexões: se fosse, o MySQL teria vencido. A causa exata — seja diferenças de eficiência no protocolo de rede, na criação de snapshots MVCC por leitura, ou nos detalhes internos do gerenciador de buffer — exigiria profiling mais detalhado, que está fora do escopo deste benchmark.
 
 ---
 
@@ -213,9 +213,8 @@ O gráfico abaixo mostra, de uma vez só, onde cada banco teve seus piores momen
 ![Heatmap latência p99](../resultados/graficos/07_heatmap_latencia_p99.png)
 
 O padrão visual confirma tudo que vimos:
-- SQLite é verde escuro (excelente) nos cenários A e B, e vermelho intenso (3.000+ ms de p99) no C — o "colapso" do lock.
-- PostgreSQL mantém latências baixas e estáveis em todos os cenários.
-- MySQL é bom nos cenários A e B, mas tem p99 alto no C (224 ms e 343 ms), reflexo das filas de commit.
+- Nos cenários A e B, os três bancos aparecem em verde — todos têm latências baixas. O SQLite tem os menores valores, mas MySQL e PostgreSQL também estão na faixa de milissegundos.
+- No cenário C, o contraste aparece: **PostgreSQL permanece verde** (6 ms), **MySQL fica vermelho** (224–343 ms de p99), reflexo das filas de commit. O colapso do SQLite nesse cenário é mais visível no gráfico de TPS e taxa de falhas — o heatmap mostra apenas a latência das operações que completaram com sucesso (~9 ms), não as que falharam por timeout.
 
 ---
 
@@ -226,10 +225,12 @@ Os três paradigmas se comportaram exatamente como a teoria de banco de dados pr
 | Paradigma | Quando vence | Quando perde |
 |---|---|---|
 | **SQLite (embarcado)** | Usuário único ou leituras concorrentes locais: velocidade incomparável sem nenhum overhead de rede | Qualquer cenário com escritas concorrentes: o modelo de lock exclusivo serializa tudo |
-| **MySQL (threads)** | Bom equilíbrio geral para leituras e escritas moderadas | A 100 conexões não superou o PostgreSQL; custo de commit individual é alto |
+| **MySQL (threads)** | Potencialmente vantajoso em cenários com milhares de conexões simultâneas, onde threads consomem menos memória que processos | A 100 conexões não superou o PostgreSQL em nenhum cenário; custo de commit individual é alto |
 | **PostgreSQL (processos)** | Escritas concorrentes pesadas: MVCC e controle de transações robusto levam a 6x mais TPS que o MySQL no cenário C | Uso de memória por conexão mais alto (um processo por cliente) |
 
-**A mensagem central:** a escolha do SGBD não é sobre "qual é o mais rápido" em termos absolutos — é sobre qual paradigma se encaixa no padrão de acesso da aplicação. SQLite para uso local/embarcado, PostgreSQL para workloads de escrita concorrente, MySQL como opção intermediária para leituras em escala.
+**A mensagem central:** a escolha do SGBD não é sobre "qual é o mais rápido" em termos absolutos — é sobre qual paradigma se encaixa no padrão de acesso da aplicação. SQLite para uso local/embarcado, PostgreSQL para workloads de escrita concorrente.
+
+> **Ressalva sobre o MySQL:** dentro do escopo deste benchmark (100 conexões), o MySQL não superou o PostgreSQL em nenhum dos cenários testados. A principal vantagem teórica do modelo de threads — menor consumo de memória por conexão — pode se tornar relevante em aplicações com milhares de conexões simultâneas, cenário que ficou fora do escopo deste trabalho.
 
 ---
 
