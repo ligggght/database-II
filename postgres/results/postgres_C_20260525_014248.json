@@ -1,0 +1,200 @@
+{
+  "sgbd": "postgres",
+  "cenario": "C",
+  "descricao": "100 conexões concorrentes, 50% INSERT + 50% UPDATE",
+  "runs": {
+    "total": 10,
+    "descartadas": 1,
+    "consideradas": 9
+  },
+  "media": {
+    "num_workers": 100,
+    "ops_por_worker": 1000,
+    "total_ops": 100000,
+    "total_ops_planejadas": 100000,
+    "total_falhas": 0,
+    "taxa_falhas": 0.0,
+    "tempo_total_s": 2.9102,
+    "tps": 34717.3244,
+    "latencia_inserts": {
+      "media_ms": 2.615,
+      "p50_ms": 2.4405,
+      "p95_ms": 4.4844,
+      "p99_ms": 6.0266,
+      "min_ms": 0.4381,
+      "max_ms": 34.8265
+    },
+    "latencia_updates": {
+      "media_ms": 2.7583,
+      "p50_ms": 2.5777,
+      "p95_ms": 4.7271,
+      "p99_ms": 6.3932,
+      "min_ms": 0.4054,
+      "max_ms": 14.9083
+    }
+  },
+  "desvio_padrao": {
+    "num_workers": 0.0,
+    "ops_por_worker": 0.0,
+    "total_ops": 0.0,
+    "total_ops_planejadas": 0.0,
+    "total_falhas": 0.0,
+    "taxa_falhas": 0.0,
+    "tempo_total_s": 0.319,
+    "tps": 3662.8714,
+    "latencia_inserts": {
+      "media_ms": 0.218,
+      "p50_ms": 0.2032,
+      "p95_ms": 0.495,
+      "p99_ms": 0.8853,
+      "min_ms": 0.0178,
+      "max_ms": 20.8954
+    },
+    "latencia_updates": {
+      "media_ms": 0.5077,
+      "p50_ms": 0.4372,
+      "p95_ms": 1.0319,
+      "p99_ms": 1.7309,
+      "min_ms": 0.0564,
+      "max_ms": 3.5942
+    }
+  },
+  "percentual_desvio": {
+    "num_workers": 0.0,
+    "ops_por_worker": 0.0,
+    "total_ops": 0.0,
+    "total_ops_planejadas": 0.0,
+    "total_falhas": 0.0,
+    "taxa_falhas": 0.0,
+    "tempo_total_s": 10.9614,
+    "tps": 10.5506,
+    "latencia_inserts": {
+      "media_ms": 8.3365,
+      "p50_ms": 8.3262,
+      "p95_ms": 11.0383,
+      "p99_ms": 14.6899,
+      "min_ms": 4.063,
+      "max_ms": 59.9986
+    },
+    "latencia_updates": {
+      "media_ms": 18.4063,
+      "p50_ms": 16.9609,
+      "p95_ms": 21.8295,
+      "p99_ms": 27.0741,
+      "min_ms": 13.9122,
+      "max_ms": 24.1087
+    }
+  },
+  "erro_padrao": {
+    "num_workers": 0.0,
+    "ops_por_worker": 0.0,
+    "total_ops": 0.0,
+    "total_ops_planejadas": 0.0,
+    "total_falhas": 0.0,
+    "taxa_falhas": 0.0,
+    "tempo_total_s": 0.1063,
+    "tps": 1220.9571,
+    "latencia_inserts": {
+      "media_ms": 0.0727,
+      "p50_ms": 0.0677,
+      "p95_ms": 0.165,
+      "p99_ms": 0.2951,
+      "min_ms": 0.0059,
+      "max_ms": 6.9651
+    },
+    "latencia_updates": {
+      "media_ms": 0.1692,
+      "p50_ms": 0.1457,
+      "p95_ms": 0.344,
+      "p99_ms": 0.577,
+      "min_ms": 0.0188,
+      "max_ms": 1.1981
+    }
+  },
+  "ic95": {
+    "num_workers": {
+      "inferior": 100.0,
+      "superior": 100.0
+    },
+    "ops_por_worker": {
+      "inferior": 1000.0,
+      "superior": 1000.0
+    },
+    "total_ops": {
+      "inferior": 100000.0,
+      "superior": 100000.0
+    },
+    "total_ops_planejadas": {
+      "inferior": 100000.0,
+      "superior": 100000.0
+    },
+    "total_falhas": {
+      "inferior": 0.0,
+      "superior": 0.0
+    },
+    "taxa_falhas": {
+      "inferior": 0.0,
+      "superior": 0.0
+    },
+    "tempo_total_s": {
+      "inferior": 2.7019,
+      "superior": 3.1185
+    },
+    "tps": {
+      "inferior": 32324.2485,
+      "superior": 37110.4003
+    },
+    "latencia_inserts": {
+      "media_ms": {
+        "inferior": 2.4725,
+        "superior": 2.7575
+      },
+      "p50_ms": {
+        "inferior": 2.3078,
+        "superior": 2.5732
+      },
+      "p95_ms": {
+        "inferior": 4.161,
+        "superior": 4.8078
+      },
+      "p99_ms": {
+        "inferior": 5.4482,
+        "superior": 6.605
+      },
+      "min_ms": {
+        "inferior": 0.4265,
+        "superior": 0.4497
+      },
+      "max_ms": {
+        "inferior": 21.1749,
+        "superior": 48.4781
+      }
+    },
+    "latencia_updates": {
+      "media_ms": {
+        "inferior": 2.4267,
+        "superior": 3.0899
+      },
+      "p50_ms": {
+        "inferior": 2.2921,
+        "superior": 2.8633
+      },
+      "p95_ms": {
+        "inferior": 4.0529,
+        "superior": 5.4013
+      },
+      "p99_ms": {
+        "inferior": 5.2623,
+        "superior": 7.5241
+      },
+      "min_ms": {
+        "inferior": 0.3686,
+        "superior": 0.4422
+      },
+      "max_ms": {
+        "inferior": 12.56,
+        "superior": 17.2566
+      }
+    }
+  }
+}

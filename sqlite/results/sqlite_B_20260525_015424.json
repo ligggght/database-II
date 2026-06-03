@@ -1,0 +1,118 @@
+{
+  "sgbd": "sqlite",
+  "cenario": "B",
+  "descricao": "100 conexões concorrentes, somente SELECTs",
+  "runs": {
+    "total": 10,
+    "descartadas": 1,
+    "consideradas": 9
+  },
+  "media": {
+    "num_workers": 100,
+    "ops_por_worker": 1000,
+    "total_ops": 100000,
+    "tempo_total_s": 0.4531,
+    "tps": 220749.8,
+    "latencia": {
+      "media_ms": 0.0213,
+      "p50_ms": 0.0206,
+      "p95_ms": 0.0279,
+      "p99_ms": 0.0346,
+      "min_ms": 0.0113,
+      "max_ms": 5.3215
+    }
+  },
+  "desvio_padrao": {
+    "num_workers": 0.0,
+    "ops_por_worker": 0.0,
+    "total_ops": 0.0,
+    "tempo_total_s": 0.0071,
+    "tps": 3447.7765,
+    "latencia": {
+      "media_ms": 0.0003,
+      "p50_ms": 0.0001,
+      "p95_ms": 0.0003,
+      "p99_ms": 0.0009,
+      "min_ms": 0.0001,
+      "max_ms": 2.3076
+    }
+  },
+  "percentual_desvio": {
+    "num_workers": 0.0,
+    "ops_por_worker": 0.0,
+    "total_ops": 0.0,
+    "tempo_total_s": 1.567,
+    "tps": 1.5618,
+    "latencia": {
+      "media_ms": 1.4085,
+      "p50_ms": 0.4854,
+      "p95_ms": 1.0753,
+      "p99_ms": 2.6012,
+      "min_ms": 0.885,
+      "max_ms": 43.3637
+    }
+  },
+  "erro_padrao": {
+    "num_workers": 0.0,
+    "ops_por_worker": 0.0,
+    "total_ops": 0.0,
+    "tempo_total_s": 0.0024,
+    "tps": 1149.2588,
+    "latencia": {
+      "media_ms": 0.0001,
+      "p50_ms": 0.0,
+      "p95_ms": 0.0001,
+      "p99_ms": 0.0003,
+      "min_ms": 0.0,
+      "max_ms": 0.7692
+    }
+  },
+  "ic95": {
+    "num_workers": {
+      "inferior": 100.0,
+      "superior": 100.0
+    },
+    "ops_por_worker": {
+      "inferior": 1000.0,
+      "superior": 1000.0
+    },
+    "total_ops": {
+      "inferior": 100000.0,
+      "superior": 100000.0
+    },
+    "tempo_total_s": {
+      "inferior": 0.4484,
+      "superior": 0.4578
+    },
+    "tps": {
+      "inferior": 218497.2528,
+      "superior": 223002.3472
+    },
+    "latencia": {
+      "media_ms": {
+        "inferior": 0.0211,
+        "superior": 0.0215
+      },
+      "p50_ms": {
+        "inferior": 0.0206,
+        "superior": 0.0206
+      },
+      "p95_ms": {
+        "inferior": 0.0277,
+        "superior": 0.0281
+      },
+      "p99_ms": {
+        "inferior": 0.034,
+        "superior": 0.0352
+      },
+      "min_ms": {
+        "inferior": 0.0113,
+        "superior": 0.0113
+      },
+      "max_ms": {
+        "inferior": 3.8139,
+        "superior": 6.8291
+      }
+    }
+  }
+}
